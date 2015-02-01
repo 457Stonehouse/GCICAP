@@ -34,6 +34,8 @@ Current planned enhancements list is:
 *investigate possible performance improvements
 * further tidy up script 
 *investigate replacing group:destroy() with http://forums.eagle.ru/showpost.php?p=2297117&postcount=11
+*fix maxactiveandspawninterceptorgroups accounting so GCI flights that land will decrement count
+
 
 See the user guide available at http://457stonehouse.github.io/GCICAP/
 
@@ -2725,9 +2727,10 @@ function spawnCAP(color)
 						end
 					end
 				end	
-				local airbasedata=mist.utils.tableShow(airfldsel)
+
 				
 				if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 7) then
+					airbasedata=mist.utils.tableShow(airfldsel)
 					Debug("red airbasetable: "..airbasedata, CAPside)
 				end
 				
@@ -3569,6 +3572,22 @@ function clearApron(color)
 						then
 							local shutdowngroup = Unit.getGroup(arrivalunit)
 							shutdowngroup:destroy()
+							if (Unit.getCoalition(arrivalunit) == coalition.side.RED) then
+								numberofspawnedandactiveinterceptorgroupsRED = numberofspawnedandactiveinterceptorgroupsRED - 1
+					
+								if debuggingmessages == true then
+									local lside = 'red'
+									Debug("red maxactive groups:" ..string.format(numberofspawnedandactiveinterceptorgroupsRED), lside)
+								end
+					
+							else
+								numberofspawnedandactiveinterceptorgroupsBLUE = numberofspawnedandactiveinterceptorgroupsBLUE - 1
+					
+								if debuggingmessages == true then
+									local lside = 'blue'
+									Debug("blue maxactive groups:" ..string.format(numberofspawnedandactiveinterceptorgroupsBLUE), lside)
+								end	
+							end
 							
 							if debuggingmessages == true and (side == debuggingside or debuggingside == 'both') then
 								Debug("debugging message clearApron: group deleted: counter:", side)
