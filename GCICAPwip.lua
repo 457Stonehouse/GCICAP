@@ -3573,19 +3573,22 @@ function clearApron(color)
 							local shutdowngroup = Unit.getGroup(arrivalunit)
 							shutdowngroup:destroy()
 							if (Unit.getCoalition(arrivalunit) == coalition.side.RED) then
-								numberofspawnedandactiveinterceptorgroupsRED = numberofspawnedandactiveinterceptorgroupsRED - 1
+								if (string.sub(airspawnname,1,3) == "GCI") then
+									numberofspawnedandactiveinterceptorgroupsRED = numberofspawnedandactiveinterceptorgroupsRED - 1
 					
-								if debuggingmessages == true then
-									local lside = 'red'
-									Debug("red maxactive groups:" ..string.format(numberofspawnedandactiveinterceptorgroupsRED), lside)
+									if debuggingmessages == true then
+										local lside = 'red'
+										Debug("red maxactive groups:" ..string.format(numberofspawnedandactiveinterceptorgroupsRED), lside)
+									end
 								end
-					
 							else
-								numberofspawnedandactiveinterceptorgroupsBLUE = numberofspawnedandactiveinterceptorgroupsBLUE - 1
+								if (string.sub(airspawnname,1,3) == "GCI") then
+									numberofspawnedandactiveinterceptorgroupsBLUE = numberofspawnedandactiveinterceptorgroupsBLUE - 1
 					
-								if debuggingmessages == true then
-									local lside = 'blue'
-									Debug("blue maxactive groups:" ..string.format(numberofspawnedandactiveinterceptorgroupsBLUE), lside)
+									if debuggingmessages == true then
+										local lside = 'blue'
+										Debug("blue maxactive groups:" ..string.format(numberofspawnedandactiveinterceptorgroupsBLUE), lside)
+									end	
 								end	
 							end
 							
