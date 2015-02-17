@@ -22,6 +22,9 @@ New in release with 12/1/2015 version:
 *increased waypoint speeds
 *Githib repository implemented and user guide released.
 
+New in release with xx/yy/2015 version:
+*investigate replacing group:destroy() with http://forums.eagle.ru/showpost.php?p=2297117&postcount=11
+
 Current planned enhancements list is:
 *might look at a parameter to make the players not be interception targets if people think this is useful for their mission design needs. 
 *Revisit the radar side of things so that ship, ground and AWACs can be used/ Eventually hopefully change things so radar units are dynamically picked up from the mission rather than having to edit the scripts. 
@@ -33,7 +36,7 @@ Current planned enhancements list is:
 *add the ability for player to call for limited amounts of GCI missions to help them - "call for help"
 *investigate possible performance improvements
 * further tidy up script 
-*investigate replacing group:destroy() with http://forums.eagle.ru/showpost.php?p=2297117&postcount=11
+
 *fix maxactiveandspawninterceptorgroups accounting so GCI flights that land will decrement count
 
 
@@ -3568,10 +3571,11 @@ function clearApron(color)
 					local absarrivalunitvel = math.abs(arrivalunitvel.x) + math.abs(arrivalunitvel.y) + math.abs(arrivalunitvel.z)
 					if absarrivalunitvel < 1
 					then
-						if Unit.getGroup(arrivalunit) ~= nil
-						then
-							local shutdowngroup = Unit.getGroup(arrivalunit)
-							shutdowngroup:destroy()
+						--if Unit.getGroup(arrivalunit) ~= nil
+						--then
+							--local shutdowngroup = Unit.getGroup(arrivalunit)
+							arrivalunit:destroy()
+--[[WIP
 							if (Unit.getCoalition(arrivalunit) == coalition.side.RED) then
 								if (string.sub(airspawnname,1,3) == "GCI") then
 									numberofspawnedandactiveinterceptorgroupsRED = numberofspawnedandactiveinterceptorgroupsRED - 1
@@ -3591,12 +3595,12 @@ function clearApron(color)
 									end	
 								end	
 							end
-							
+--]]							
 							if debuggingmessages == true and (side == debuggingside or debuggingside == 'both') then
-								Debug("debugging message clearApron: group deleted: counter:", side)
+								Debug("debugging message clearApron: unit deleted: counter:", side)
 							end
 							
-						end
+						--end
 					end
 				end
 			end
@@ -3746,8 +3750,9 @@ function airfieldwreckagecleanup(color)
 								
 									if cleandistancetoairfield <= cleanupradius --substitute value for cleanairfield.radius
 									then
-										local currentaircraftgroup = Unit.getGroup(currentaircraftunit)
-										currentaircraftgroup:destroy()
+										--local currentaircraftgroup = Unit.getGroup(currentaircraftunit)
+										--currentaircraftgroup:destroy()
+										Unit.getByName(currentaircraftunitname):destroy()
 										stuckunitstable[currentaircraftunitname] = nil --remove table entry for deleted unit
 										--give back a supply point for a side's logistics for a stuck aircraft
 										if (currentaircraftunit:inAir() == false and stucktime >=stucktimelimit) then
