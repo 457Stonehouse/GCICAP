@@ -1,4 +1,7 @@
 --[[ Script Overview and credits
+**************************************
+*****Requires MIST 3.5.37 or later****
+**************************************
 
 Originally created by Snafu, enhanced and further modified by Stonehouse, Rivvern, Chameleon Silk 
 
@@ -85,29 +88,29 @@ local numberofredCAPzones = 2								--input of numbers of defined CAP zones for
 local numberofblueCAPzones = 2								--input of numbers of defined CAP zones for Blue side --YY capitalisation
 local numberofredCAPgroups = 2								--input of numbers of defined CAPs for red side
 local numberofblueCAPgroups = 2								--input of numbers of defined CAPs blue red side
-local numberofspawnedandactiveinterceptorgroupsRED = 2		--maximum number of at the same time ongoing active intercepts for Red side, NOTE: The counter will be reset with the "taskinginterval" and each time the airspace is clear
-local numberofspawnedandactiveinterceptorgroupsBLUE = 2		--maximum number of at the same time ongoing active intercepts for blue side, NOTE: The counter will be reset with the "taskinginterval" and each time the airspace is clear
+local numberofspawnedandactiveinterceptorgroupsRED = 1		--maximum number of at the same time ongoing active intercepts for Red side, NOTE: The counter will be reset with the "taskinginterval" and each time the airspace is clear
+local numberofspawnedandactiveinterceptorgroupsBLUE = 1		--maximum number of at the same time ongoing active intercepts for blue side, NOTE: The counter will be reset with the "taskinginterval" and each time the airspace is clear
 local CAPgroupsize = "randomized"			            	--["2";"4";"randomized"] if "randomized", the CAP groups consist of either 2 or 4 planes, if "2" it consists of 2 planes, if "4" it consists of 4 planes
 local GCIgroupsize = "randomized"			                --["2";"4";"randomized"; "dynamic"] if "randomized", the GCI interceptor groups consist of either 2 or 4 planes, if "dynamic" it has the same size as the intercepted group, if "2" it consists of 2 planes, if "4" it consists of 4 planes
-local nomessages = 0										--nomessages = 1 means suppress GCI warnings
+local nomessages = 1										--nomessages = 1 means suppress GCI warnings
 local dspmsgtime = 3 										--display GCI messages in secs
 local dspmsgunits = 0										--display GCI messages in KM (1) or NM (0)
-local noborders = 0                                         --if noborders = 1 then don't worry about border checks only detection. if noborders = 0 then as normal
+local noborders = 1                                         --if noborders = 1 then don't worry about border checks only detection. if noborders = 0 then as normal
 local Spawnmode = "parking" 								--option to define AI spawn situation, must be["parking"/"takeoff"/"air"]	and defines the way the fighters spawn 
 local hideenemy = false 								    --option to hide or reveal air units in the mission. This setting affects both sides. Valid values are true/false to make units hidden/unhidden
 noblueCAPs = 0												--if noblueCAPs = 1 then all blue CAP flights are suppressed and only GCI missions will launch, noblueCAPs=0 means CAPS & GCIs as normal
 noredCAPs = 0											    --if noredCAPs = 1 then all red CAP flights are suppressed and only GCI missions will launch, noredCAPs=0 means CAPS & GCIs as normal
 --next three parameters for logistics system
-bluegroupsupply = 24										--initial blue aircraft group numbers 
-redgroupsupply = 24											--initial red aircraft group numbers 
-limitedlogistics = 0										--parameter specifying whether total supply of blue and red groups are limited. 1 = Yes 0 = No
+bluegroupsupply = 36										--initial blue aircraft group numbers 
+redgroupsupply = 36											--initial red aircraft group numbers 
+limitedlogistics = 1										--parameter specifying whether total supply of blue and red groups are limited. 1 = Yes 0 = No
 --Do not make the next value too low!! or you will see groups despawn before all members take off. The number of secs a stuck aircraft group will sit there on the taxiway before it's group is removed; may need adjustment upwards to suit airfields with limited taxiways. 
-stucktimelimit = 1080	
+stucktimelimit = 300 --1080	temp for testing
 cleanupradius = 3000										--parameter for radius of cleanup of wrecks etc on airfields
 
 --DEBUGGING options #### NOTE that to display table values the mist.tableShow lines must be uncommented as well as their associated Debug line
-local debuggingmessages = false								--set to true if tracking messages shall be printed
-env.setErrorMessageBoxEnabled(false)		       			--set to false if debugging message box, shall not be shown in game
+local debuggingmessages = true								--set to true if tracking messages shall be printed
+env.setErrorMessageBoxEnabled(true)		       			--set to false if debugging message box, shall not be shown in game
 local debuggingside = 'blue'								--set side for which tracking messages shall be printed, use 'both' if you want debug messages for both sides to be logged
 local funnum = 8											--set to 0 for all otherwise set to specific number for function of interest
 															-- airspaceviolation = 1
@@ -338,8 +341,8 @@ function getallaircrafts(color)
 		end
 	end
 	if debuggingmessages == true and (side == debuggingside or debuggingside == 'both') then
-		local allairunitsTable = mist.utils.tableShow(allairunits)
-		Debug(side.." allairunits: " ..allairunitsTable, side) 
+		--local allairunitsTable = mist.utils.tableShow(allairunits)
+		--Debug(side.." allairunits: " ..allairunitsTable, side) 
 	end
 
 return allairunits
@@ -1641,33 +1644,16 @@ function spawninterceptor(color)
 																					}
 
 						if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 3) then
-							interceptspawnstatusTable = mist.utils.tableShow(interceptspawnstatus[interceptorside])
+							local interceptspawnstatusTable = mist.utils.tableShow(interceptspawnstatus[interceptorside])
 							Debug(interceptorside.." interceptspawnstatus:" ..interceptspawnstatusTable, interceptorside)
 						end
-						
-						--strengthrandomizer conditions to match how aircraft are spawned
-						if strengthrandomizer == 1 then  
-							stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-1"] = timer.getTime() --record spawn time of unit1
-							elseif strengthrandomizer == 2 then  
-								stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-1"] = timer.getTime() --record spawn time of unit1
-								stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-2"] = timer.getTime() --record spawn time of unit2
-								elseif strengthrandomizer == 3 then  
-									stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-1"] = timer.getTime() --record spawn time of unit1
-									stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-2"] = timer.getTime() --record spawn time of unit2
-									stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-3"] = timer.getTime() --record spawn time of unit3								
-									elseif strengthrandomizer == 4 then  
-										stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-1"] = timer.getTime() --record spawn time of unit1
-										stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-2"] = timer.getTime() --record spawn time of unit2
-										stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-3"] = timer.getTime() --record spawn time of unit3
-										stuckunitstable[Interceptorgroupname.."-Fl#"..intgroupcounter.."-4"] = timer.getTime() --record spawn time of unit4
-						end	--strengthrandomizer
 					end --logistics
 				end --less than max intercepts
 			end --group ~= nil
 		end --do for each intruder
 	end --if there are interceptors and intruders
 	
-return interceptspawnstatus[interceptorside], stuckunitstable 
+return interceptspawnstatus[interceptorside]
 end --spawninterceptor
 
 ---------------------------------------------Set intercept task for  Interceptor
@@ -3318,18 +3304,7 @@ remove unit. Can do similar in GCI interceptor spawn.
 						
 --]]--
 
-	if strengthrandomizer == 1 then
-		stuckunitstable[CAPgroupname.." #1"] = timer.getTime() --record spawn time of unit1
-		stuckunitstable[CAPgroupname.." #2"] = timer.getTime() --record spawn time of unit2
-	else
-		stuckunitstable[CAPgroupname.." #1"] = timer.getTime() --record spawn time of unit1
-		stuckunitstable[CAPgroupname.." #2"] = timer.getTime() --record spawn time of unit2
-		stuckunitstable[CAPgroupname.." #3"] = timer.getTime() --record spawn time of unit3
-		stuckunitstable[CAPgroupname.." #4"] = timer.getTime() --record spawn time of unit4
-	end
-	
-
-return actualCAPtable[CAPside], stuckunitstable 
+return actualCAPtable[CAPside] 
 end --spawnCAP
 
 -----------------------------------------------main function which calls the major sub functions according to schedule 
@@ -3467,7 +3442,11 @@ function arrivaltableINT:onEvent(event)
 			local desc = Unit.getDesc(airspawnunit)
 			if desc.category == 0 and ((string.sub(airspawnname,1,3) == "GCI") or (string.sub(airspawnname,1,3) == "CAP")) then --category = 0 => aircraft
 				if Unit.getPlayerName(airspawnunit) == nil then
-					stuckunitstable[Unit.getName(airspawnunit)] = nil --reset stuckunitstable entry for a unit that get airborne
+					stuckunitstable[Unit.getName(airspawnunit)] = timer.getTime() --set stuckunitstable entry for a unit that spawns 
+					if debuggingmessages == true then
+						local stuckunitstableTable = mist.utils.tableShow(stuckunitstable)
+						Debug("spawn stuckunitstable:" ..stuckunitstableTable, 'red')
+					end
 					--reduce supply for a side's logistics for a aircraft getting airborne 
 					if (Unit.getCoalition(airspawnunit) == coalition.side.RED) then
 						redgroupsupply = redgroupsupply - 1
@@ -3502,6 +3481,7 @@ function arrivaltableINT:onEvent(event)
 			if ldesc.category == 0 and ((string.sub(landingunitname,1,3) == "GCI") or (string.sub(landingunitname,1,3) == "CAP")) then --category = 0 => aircraft
 				if Unit.getPlayerName(landingunit) == nil
 				then
+					stuckunitstable[landingunitname] = nil --reset stuckunitstable entry for a unit that lands as if landing can't have been stuck 
 					--give back a supply point for a side's logistics for a safely landed aircraft
 					if limitedlogistics == 1 then
 						if (Unit.getCoalition(landingunit) == coalition.side.RED) then
@@ -3574,7 +3554,7 @@ function clearApron(color)
 						--if Unit.getGroup(arrivalunit) ~= nil
 						--then
 							--local shutdowngroup = Unit.getGroup(arrivalunit)
-							arrivalunit:destroy()
+							Unit.getByName(currentunitname):destroy()
 --[[WIP
 							if (Unit.getCoalition(arrivalunit) == coalition.side.RED) then
 								if (string.sub(airspawnname,1,3) == "GCI") then
@@ -3644,10 +3624,11 @@ function airfieldwreckagecleanup(color)
 			if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
 				Debug("Debugmessage: Script stuck at cleanup 1", airfieldside)
 			end	
-				
-			if unitData.unitName ~= nil
+			
+			local currentaircraftunitname = unitData.unitName
+			
+			if currentaircraftunitname ~= nil and ((string.sub(currentaircraftunitname,1,3) == "GCI") or (string.sub(currentaircraftunitname,1,3) == "CAP"))
 			then
-				local currentaircraftunitname = unitData.unitName
 				
 				if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
 					Debug("Debugmessage: Script stuck at cleanup 2", airfieldside)
@@ -3671,10 +3652,19 @@ function airfieldwreckagecleanup(color)
 
 						
 						if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
-							Debug("Debugmessage: Script stuck at cleanup 4a", airfieldside)
+							Debug("Debugmessage: Script stuck at cleanup 4a "..currentaircraftunitname.." ", airfieldside)
 						end
 						
-						local unitspawntime = stuckunitstable[currentaircraftunitname] 
+						local unitspawntime = 0
+						if stuckunitstable[currentaircraftunitname] ~= nil then
+							unitspawntime = stuckunitstable[currentaircraftunitname]
+						end
+							
+						
+						if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
+							Debug("Debugmessage: wreck currentaircraftunitname "..currentaircraftunitname, airfieldside)
+						end
+						
 						local stucktime = 0 
 						local nowtime = timer.getTime()
 						
@@ -3687,9 +3677,10 @@ function airfieldwreckagecleanup(color)
 							end
 						
 							stucktime = nowtime - unitspawntime 
-							
+																					
 							if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
 								Debug("Debugmessage: Script stuck at cleanup 4c", airfieldside)
+								Debug("Debugmessage: wreck currentaircraftunitname "..currentaircraftunitname.." "..string.format(stucktime), airfieldside)
 							end	
 								
 						end 
@@ -3750,10 +3741,6 @@ function airfieldwreckagecleanup(color)
 								
 									if cleandistancetoairfield <= cleanupradius --substitute value for cleanairfield.radius
 									then
-										--local currentaircraftgroup = Unit.getGroup(currentaircraftunit)
-										--currentaircraftgroup:destroy()
-										Unit.getByName(currentaircraftunitname):destroy()
-										stuckunitstable[currentaircraftunitname] = nil --remove table entry for deleted unit
 										--give back a supply point for a side's logistics for a stuck aircraft
 										if (currentaircraftunit:inAir() == false and stucktime >=stucktimelimit) then
 											if airfieldside == 'red' then
@@ -3772,6 +3759,24 @@ function airfieldwreckagecleanup(color)
 												
 											end
 										end
+										--local currentaircraftgroup = Unit.getGroup(currentaircraftunit)
+										--currentaircraftgroup:destroy()
+										if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
+											Debug(airfieldside.." pre unitcleanup:" ..currentaircraftunitname, airfieldside)
+										end											
+										Unit.getByName(currentaircraftunitname):destroy() --remove the wreck or stuck unit
+										
+										if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
+											Debug(airfieldside.." post unitcleanup:" ..currentaircraftunitname, airfieldside)
+										end	
+										
+										stuckunitstable[currentaircraftunitname] = nil --remove table entry for deleted unit
+
+										if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
+											local stuckunitstableTable = mist.utils.tableShow(stuckunitstable)
+											Debug("wreck stuckunitstable:" ..stuckunitstableTable, airfieldside)
+										end	
+
 									end
 								end
 							end
