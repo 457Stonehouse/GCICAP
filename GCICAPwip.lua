@@ -34,6 +34,8 @@ Current planned enhancements list is:
 *Investigate whether carriers could be set up as airbases for the purposes of this script. Not sure if the US one is functional but believe that the Russian one is. 
 *Adding the recon script and CAS/anti ship flight functionality so that flights are launched against ground/naval targets picked up by recon in a similar fashion to GCI
 *Seeing if it is possible to get CAP and GCI flights to refrain from crossing borders if their target goes back into friendly territory 
+*Redo airbases so the table takes account of captures
+*Control border switch from within the mission.
 *Improve error handling
 *add better string handling for CAP and GCI unit names eg mist.stringMatch removes a bunch of characters, removes spaces, and can compare it all lower case. 
 *add the ability for player to call for limited amounts of GCI missions to help them - "call for help"
