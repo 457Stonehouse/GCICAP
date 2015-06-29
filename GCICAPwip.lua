@@ -1,6 +1,6 @@
 --[[ Script Overview and credits
 **************************************
-*****Requires MIST 3.5.37 or later****
+*****Requires MIST 3.7.51 or later (see https://github.com/mrSkortch/MissionScriptingTools for the latest version DO NOT USE 3.6.43 ****
 **************************************
 
 Originally created by Snafu, enhanced and further modified by Stonehouse, Rivvern, Chameleon Silk 
@@ -35,7 +35,7 @@ Current planned enhancements list is:
 *Adding the recon script and CAS/anti ship flight functionality so that flights are launched against ground/naval targets picked up by recon in a similar fashion to GCI
 *Seeing if it is possible to get CAP and GCI flights to refrain from crossing borders if their target goes back into friendly territory 
 *Redo airbases so the table takes account of captures
-*Control border switch from within the mission.
+*Control certain variables such as border switch, logistics etc from within the mission.
 *Improve error handling
 *add better string handling for CAP and GCI unit names eg mist.stringMatch removes a bunch of characters, removes spaces, and can compare it all lower case. 
 *add the ability for player to call for limited amounts of GCI missions to help them - "call for help"
