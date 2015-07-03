@@ -31,7 +31,9 @@ Current planned enhancements list is:
 *Improve error handling
 *add better string handling for CAP and GCI unit names eg mist.stringMatch removes a bunch of characters, removes spaces, and can compare it all lower case. 
 *add the ability for player to call for limited amounts of GCI missions to help them - "call for help"
-*investigate possible performance improvements
+*investigate possible performance improvements by changing to local variables where possible
+*cater for airbase capture handling
+*parameterise waypoint speeds
 * further tidy up script 
 
 See the user guide available at http://457stonehouse.github.io/GCICAP/
