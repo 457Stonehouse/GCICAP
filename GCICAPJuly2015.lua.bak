@@ -63,7 +63,9 @@ do
 --* Configuration Parameters that need to be set by mission designer start below
 --************************************************************************************************************************************
 --*mission accessible variables
-
+--control CAP minimum & maximum altitudes 
+cap_max_alt = 7500											--CAP max alt in meters
+cap_min_alt = 4500											--CAP min alt in meters
 --Intercept way point speed, Patrol way point speed and RTB waypoint speed
 Interceptspeed = 400
 Patrolspeed = 350
@@ -81,9 +83,6 @@ limitedlogistics = 0										--parameter specifying whether total supply of blu
 noblueCAPs = 0												--if noblueCAPs = 1 then all blue CAP flights are suppressed and only GCI missions will launch, noblueCAPs=0 means CAPS & GCIs as normal
 noredCAPs = 0											    --if noredCAPs = 1 then all red CAP flights are suppressed and only GCI missions will launch, noredCAPs=0 means CAPS & GCIs as normal
 --****************************
-
-local cap_max_alt = 7500									--CAP max alt in meters
-local cap_min_alt = 4500									--CAP min alt in meters
 local numberofredCAPzones = 2								--input of numbers of defined CAP zones for Red side --YY capitalisation
 local numberofblueCAPzones = 2								--input of numbers of defined CAP zones for Blue side --YY capitalisation
 local numberofredCAPgroups = 2								--input of numbers of defined CAPs for red side
@@ -134,33 +133,12 @@ local taskinginterval = 1800 					       		--Time interval in which ongoing inte
 --names of red interceptorbases
 local redAFids = {}											 
 local redAF = {}
-local redBases = {}			
---initialise red airfields
-								 
-redAFids = coalition.getAirbases(1) 						--get list of red airbases
-for i = 1, #redAFids do
-	if mist.DBs.zonesByName[redAFids[i]:getName()] then 	--only add airbase if trigger zone present too
-		redAF[#redAF + 1] = {name=redAFids[i]:getName()}	--build name list
-	end	
-	if redAFids[i]:getName() then
-		redBases[#redBases + 1] = {name=redAFids[i]:getName()}		--build list of all bases for clean up purposes
-	end
-end	
+local redBases = {}											 
+
 --names of blue interceptorbases
 local blueAFids = {}										
 local blueAF = {}
-local blueBases = {}		
---initialise blue airfields
-								
-blueAFids = coalition.getAirbases(2) 						--get list of blue airbases
-for i = 1, #blueAFids do
-	if mist.DBs.zonesByName[blueAFids[i]:getName()] then 	--only add airbase if trigger zone present too
-		blueAF[#blueAF + 1] = {name=blueAFids[i]:getName()}	--build name list
-	end
-	if blueAFids[i]:getName() then
-		blueBases[#blueBases + 1] = {name=blueAFids[i]:getName()} --build list of all bases for clean up purposes
-	end
-end	
+local blueBases = {}										
 
 --[[ Airfield debugging
 --local airfieldsTable = mist.utils.tableShow(redAF)
@@ -197,12 +175,12 @@ previousblueCAPspawnzonename = nil
 previousredCAPZonename = nil
 previousblueCAPZonename = nil
 
-local borderviolationcheck = false	--Border violation initially false
+borderviolationcheck = false		--Border violation initially false
 intruder = {}						--Table of intruder info
 intruder['red'] = {}
 intruder['blue'] = {}
 
-local allEWRunits = {}					--Table of radar units
+allEWRunits = {}					--Table of radar units
 
 AvailableAirborne = {}				--Table of available air units
 AvailableAirborne['red'] = {}
@@ -343,7 +321,7 @@ end --getallaircrafts
 function getallEWR(color)
 
 	local side = color
-	local EWRtable= {}
+	EWRtable= {}
 
 	if side == 'red'
 		then
@@ -1025,7 +1003,7 @@ end --getinterceptorairborne
 function getAFtable(color)
 
 	local airfieldside = color
-    local AF = {}
+    --local AF = {}
 	if airfieldside == 'red'
 		then
 		
@@ -1047,11 +1025,10 @@ function getAFtable(color)
 			 
 			 
 			
-			--if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
-				local redairfldsTable = {}
-				redairfldsTable = mist.utils.tableShow(AF)
-				Debug("red Airfields: " ..redairfldsTable, 'red')
-			--end
+			if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
+				local airfldsTable = mist.utils.tableShow(AF)
+				Debug("red Airfields: " ..airfldsTable, 'red')
+			end
 			
 	elseif airfieldside == 'blue'
 		then
@@ -1072,24 +1049,12 @@ function getAFtable(color)
 			end 
 			 		
 			
-			--if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
-				local blueairfldsTable = {}
-				blueairfldsTable = mist.utils.tableShow(AF)
-				Debug("blue Airfields: " ..blueairfldsTable, 'blue')
-			--end
+			if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
+				local airfldsTable = mist.utils.tableShow(AF)
+				Debug("blue Airfields: " ..airfldsTable, 'blue')
+			end
 	end
-	
---[[ Airfield debugging
---local airfieldsTable = mist.utils.tableShow(redAF)
---local msg1 = "red airfields: "..airfieldsTable
---trigger.action.outText(msg1, 60000000)
---env.info(msg1)
 
---local airfieldsTable = mist.utils.tableShow(blueAF)
---local msg2 = "blue airfields: "..airfieldsTable
---trigger.action.outText(msg2, 60000000)
---env.info(msg2)
---]]
 
 	closestairfieldtable = nil
 	closestairfieldtable = {}
@@ -2041,7 +2006,7 @@ function interceptorsRTB(color)
 	local unitgci = 0 
 	local grpunitgci = 0 
 	local grpgciname = "" 
-	local AF = {}
+	--local AF = {}
 	
 	if interceptorside == 'red'
 		then
