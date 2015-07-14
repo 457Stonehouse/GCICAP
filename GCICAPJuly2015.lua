@@ -68,7 +68,7 @@ do
 Interceptspeed = 400
 Patrolspeed = 350
 RTBspeed = 250
---control whether initial CAPs are already airborne or not
+--control whether initial CAPs are already airborne or not ** BUG noBLUEborders trigger not working
 startairborne = 0	                               			--set to 1 for CAP flight to start airborne at script initialisation, 0 for taking off from airfield at start
 noREDborders = 0                                            --if noREDborders = 1 then don't worry about area of responsibility violation checks for RED only detection. if noREDborders = 0 then check for violation of area of interception
 noBLUEborders = 0                                           --if noBLUEborders = 1 then don't worry about area of responsibility violation checks for BLUE only detection. if noBLUEborders = 0 then check for violation of area of interception
@@ -97,12 +97,13 @@ local dspmsgtime = 3 										--display GCI messages in secs
 local dspmsgunits = 0										--display GCI messages in KM (1) or NM (0)
 local Spawnmode = "parking" 								--option to define AI spawn situation, must be["parking"/"takeoff"/"air"]	and defines the way the fighters spawn 
 local hideenemy = false 								    --option to hide or reveal air units in the mission. This setting affects both sides. Valid values are true/false to make units hidden/unhidden
-
+local RNW_type = "TakeOffParking"							--default runway actions
+local RNW_action = "From Parking Area"
 
 
 --Do not make the next value too low!! or you will see groups despawn before all members take off. The number of secs a stuck aircraft group will sit there on the taxiway before it's group is removed; may need adjustment upwards to suit airfields with limited taxiways. 
-stucktimelimit = 1080	
-cleanupradius = 3000										--parameter for radius of cleanup of wrecks etc on airfields
+local stucktimelimit = 1080										--The number of secs a stuck aircraft group will sit there on the taxiway before it's group is removed;
+local cleanupradius = 3000										--parameter for radius of cleanup of wrecks etc on airfields
 
 --DEBUGGING options #### NOTE that to display table values the mist.tableShow lines must be uncommented as well as their associated Debug line
 local debuggingmessages = false								--set to true if tracking messages shall be printed
@@ -241,6 +242,8 @@ numberofspawnedandactiveinterceptorgroups['red'] = {}
 numberofspawnedandactiveinterceptorgroups['blue'] = {} 
 
 stuckunitstable = {} --table of spawn times for each aircraft which is used to work out whether an aircraft is stuck on the ground and if so de-spawn it
+local allairunits = {} --table of all air units
+
 
 --Logic begins
 
@@ -298,7 +301,7 @@ function getallaircrafts(color)
 
 	local side = color
 	 
-	Aircraftstable = {}
+	local Aircraftstable = {}
 
 	if side == 'red'
 		then
