@@ -198,8 +198,7 @@ previousblueCAPspawnzonename = nil
 previousredCAPZonename = nil
 previousblueCAPZonename = nil
 
-borderviolationcheck = false		--Border violation initially false
-
+local borderviolationcheck = false	--Border violation initially false
 intruder = {}						--Table of intruder info
 intruder['red'] = {}
 intruder['blue'] = {}
@@ -243,14 +242,9 @@ numberofspawnedandactiveinterceptorgroups['red'] = {}
 numberofspawnedandactiveinterceptorgroups['blue'] = {} 
 
 stuckunitstable = {} --table of spawn times for each aircraft which is used to work out whether an aircraft is stuck on the ground and if so de-spawn it
---local allairunits = {} --table of all air units
+local allairunits = {} --table of all air units
 
---landedaircraftsING = {}
---arrivaltableINT = {}--Eventhandler detects planes who shut down engine, lists them and removes when engines are shut down
-local redborderline = {}
-local blueborderline = {}
-local redborderlinevec3 = {}
-local blueborderlinevec3 = {}
+
 --Logic begins
 
 --setting the type of AI spawn, default is take off from ramp
@@ -300,7 +294,7 @@ if noBLUEborders == 0 then --only get border vec3 co-ordinates if area of interc
 			--trigger.action.smoke({x=blueborderline[r].x, y=land.getHeight({x = blueborderline[r].x, y = blueborderline[r].y}), z=blueborderline[r].y}, trigger.smokeColor.Green)--check smoke
 			--trigger.action.smoke({x=blueborderlinevec3[r].x, y=land.getHeight({x = blueborderlinevec3[r].x, y = blueborderlinevec3[r].z}), z=blueborderlinevec3[r].z}, trigger.smokeColor.Red)--check smoke
 		end --blue border waypoints
-    end --noBLUEborders
+end --noBLUEborders
 
 ------------function to get all aircraft & helos currently alive on map
 function getallaircrafts(color)
@@ -420,7 +414,7 @@ function airspaceviolation(color)
 
 	local interceptorside = color
 	local checkborders = 0 --flag to decide whether to check for border violations
-	local borderline = {}
+	
 	if debuggingmessages == true and (side == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
 		Debug("debuggingmessage stuck at airspaceviolation 1: counter:"..string.format(counter).."/ side: "..interceptorside, interceptorside)
 	end
@@ -1037,9 +1031,7 @@ function getAFtable(color)
     local AF = {}
 	if airfieldside == 'red'
 		then
-		redAFids = {}
-		redAF = {}
-		redBases = {}
+		
 		redAFids = coalition.getAirbases(1) 						--get list of red airbases
 		for i = 1, #redAFids do
 			if mist.DBs.zonesByName[redAFids[i]:getName()] then 	--only add airbase if trigger zone present too
@@ -1050,25 +1042,22 @@ function getAFtable(color)
 			end
 		end	
 
-		AF = {}
-		--load airfield table from red airfields >>
-		for i = 1, #redAF do
-			AF[#AF+1] = {name=redAF[i].name}
-		end
+			AF = {}
+			--load airfield table from red airfields >>
+			for i = 1, #redAF do
+				AF[#AF+1] = {name=redAF[i].name}
+			end 
 			 
 			 
 			
-		if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
-			local redairfldsTable = {}
-			redairfldsTable = mist.utils.tableShow(AF)
-			Debug("red Airfields: " ..redairfldsTable, 'red')
-		end
+			--if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
+				local redairfldsTable = {}
+				redairfldsTable = mist.utils.tableShow(AF)
+				Debug("red Airfields: " ..redairfldsTable, 'red')
+			--end
 			
 	elseif airfieldside == 'blue'
 		then
-			blueAFids = {}
-			blueAF = {}
-			blueBases = {}
 			blueAFids = coalition.getAirbases(2) 						--get list of blue airbases
 			for i = 1, #blueAFids do
 				if mist.DBs.zonesByName[blueAFids[i]:getName()] then 	--only add airbase if trigger zone present too
@@ -1086,11 +1075,11 @@ function getAFtable(color)
 			end 
 			 		
 			
-			if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
+			--if debuggingmessages == true and (airfieldside == debuggingside or debuggingside == 'both') then
 				local blueairfldsTable = {}
 				blueairfldsTable = mist.utils.tableShow(AF)
 				Debug("blue Airfields: " ..blueairfldsTable, 'blue')
-			end
+			--end
 	end
 	
 --[[ Airfield debugging
@@ -1117,19 +1106,19 @@ function getAFtable(color)
 
 				for n = 1, #AF --XX8 
 				do
-					local closestairfieldname = AF[n].name
-					local actualairfield = trigger.misc.getZone(closestairfieldname)
-					local actualairfieldpos = {}
-					local actualairfieldposx = actualairfield.point.x
-					local actualairfieldposz = actualairfield.point.z
+					closestairfieldname = AF[n].name
+					actualairfield = trigger.misc.getZone(closestairfieldname)
+					actualairfieldpos = {}
+					actualairfieldposx = actualairfield.point.x
+					actualairfieldposz = actualairfield.point.z
 
-					local actualdistancetoairfield = math.sqrt((actualairfieldposx - actualintruderpos.x)*(actualairfieldposx - actualintruderpos.x) + (actualairfieldposz - actualintruderpos.z)*(actualairfieldposz - actualintruderpos.z))
-					local closestairfield = Airbase.getByName(closestairfieldname)
-					local closestairfieldID = closestairfield:getID()
+					actualdistancetoairfield = math.sqrt((actualairfieldposx - actualintruderpos.x)*(actualairfieldposx - actualintruderpos.x) + (actualairfieldposz - actualintruderpos.z)*(actualairfieldposz - actualintruderpos.z))
+					closestairfield = Airbase.getByName(closestairfieldname)
+					closestairfieldID = closestairfield:getID()
 
 					if n == 1
 						then
-							local minimumdistancetoairfield = actualdistancetoairfield
+							minimumdistancetoairfield = actualdistancetoairfield
 							closestairfieldtable[m] =
 																								{
 																								distance = minimumdistancetoairfield,
@@ -1142,7 +1131,7 @@ function getAFtable(color)
 																								}
 					elseif actualdistancetoairfield < minimumdistancetoairfield
 						then
-							local minimumdistancetoairfield = actualdistancetoairfield
+							minimumdistancetoairfield = actualdistancetoairfield
 							closestairfieldtable[m] =
 																								{
 																								distance = minimumdistancetoairfield,
@@ -3635,7 +3624,6 @@ function airfieldwreckagecleanup(color)
 
 	local airfieldside = color
 	local Bases = {}
-	local cleanairfieldpos = {}
 	if airfieldside == 'red'
 		then
 
