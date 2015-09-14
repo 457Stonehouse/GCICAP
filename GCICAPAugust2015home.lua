@@ -64,10 +64,7 @@ do
 --************************************************************************************************************************************
 --*mission accessible variables>>>>>>>>
 
---Intercept way point speed, Patrol way point speed and RTB waypoint speed
-Interceptspeed = 400
-Patrolspeed = 350
-RTBspeed = 250
+
 --control whether initial CAPs are already airborne or not  
 startairborne = 0	                               			--set to 1 for CAP flight to start airborne at script initialisation, 0 for taking off from airfield at start
 noREDborders = 0                                            --if noREDborders = 1 then don't worry about area of responsibility violation checks for RED only detection. if noREDborders = 0 then check for violation of area of interception
@@ -81,6 +78,10 @@ noblueCAPs = 0												--if noblueCAPs = 1 then all blue CAP flights are supp
 noredCAPs = 0												--if noredCAPs = 1 then all red CAP flights are suppressed and only GCI missions will launch, noredCAPs=0 means CAPS & GCIs as normal
 --*<<<<<<<<<<end mission accessible variables 
 
+
+local Interceptspeed = 400                                  --Intercept way point speed
+local Patrolspeed = 350                                     --Patrol way point speed  
+local RTBspeed = 250                                        --RTB waypoint speed
 local cap_max_alt = 7500									--CAP max alt in meters
 local cap_min_alt = 4500									--CAP min alt in meters
 local numberofredCAPzones = 2								--input of numbers of defined CAP zones for Red side --YY capitalisation
@@ -104,10 +105,10 @@ stucktimelimit = 1080
 cleanupradius = 3000										--parameter for radius of cleanup of wrecks etc on airfields
 
 --DEBUGGING options #### NOTE that to display table values the mist.tableShow lines must be uncommented as well as their associated Debug line
-local debuggingmessages = false								--set to true if tracking messages shall be printed
-env.setErrorMessageBoxEnabled(false)		       			--set to false if debugging message box, shall not be shown in game
-local debuggingside = 'blue'								--set side for which tracking messages shall be printed, use 'both' if you want debug messages for both sides to be logged
-local funnum = 8											--set to 0 for all otherwise set to specific number for function of interest
+local debuggingmessages = true								--set to true if tracking messages shall be printed
+env.setErrorMessageBoxEnabled(true)		       		    	--set to false if debugging message box, shall not be shown in game
+local debuggingside = 'both'								--set side for which tracking messages shall be printed, use 'both' if you want debug messages for both sides to be logged
+local funnum = 1											--set to 0 for all otherwise set to specific number for function of interest
 															-- airspaceviolation = 1
 															-- getinterceptorairborne = 2
 															-- spawninterceptor = 3
@@ -135,7 +136,7 @@ local redAFids = {}
 local redAF = {}
 local redBases = {}		
 --initialise red airfields
-								
+
 redAFids = coalition.getAirbases(1) 						--get list of red airbases
 for i = 1, #redAFids do
 	if mist.DBs.zonesByName[redAFids[i]:getName()] then 	--only add airbase if trigger zone present too
@@ -201,7 +202,7 @@ intruder = {}						--Table of intruder info
 intruder['red'] = {}
 intruder['blue'] = {}
 
-local allEWRunits = {}					--Table of radar units
+allEWRunits = {}					--Table of radar units
 
 AvailableAirborne = {}				--Table of available air units
 AvailableAirborne['red'] = {}
@@ -276,8 +277,8 @@ if noREDborders == 0 then --only get border vec3 co-ordinates if area of respons
 			x = redborderline[r].x,
 			y = land.getHeight({x = redborderline[r].x, y = redborderline[r].y})
 			}
-			--trigger.action.smoke({x=redborderline[r].x, y=land.getHeight({x = redborderline[r].x, y = redborderline[r].y}), z=redborderline[r].y}, trigger.smokeColor.Green) --check smoke
-			--trigger.action.smoke({x=redborderlinevec3[r].x, y=land.getHeight({x = redborderlinevec3[r].x, y = redborderlinevec3[r].z}), z=redborderlinevec3[r].z}, trigger.smokeColor.Red)--check smoke
+			trigger.action.smoke({x=redborderline[r].x, y=land.getHeight({x = redborderline[r].x, y = redborderline[r].y}), z=redborderline[r].y}, trigger.smokeColor.Green) --check smoke
+			trigger.action.smoke({x=redborderlinevec3[r].x, y=land.getHeight({x = redborderlinevec3[r].x, y = redborderlinevec3[r].z}), z=redborderlinevec3[r].z}, trigger.smokeColor.Red)--check smoke
 		end --redborder waypoints
 end --noREDborders
 
@@ -292,8 +293,8 @@ if noBLUEborders == 0 then --only get border vec3 co-ordinates if area of interc
 			x = blueborderline[r].x,
 			y = land.getHeight({x = blueborderline[r].x, y = blueborderline[r].y})
 			}
-			--trigger.action.smoke({x=blueborderline[r].x, y=land.getHeight({x = blueborderline[r].x, y = blueborderline[r].y}), z=blueborderline[r].y}, trigger.smokeColor.Green)--check smoke
-			--trigger.action.smoke({x=blueborderlinevec3[r].x, y=land.getHeight({x = blueborderlinevec3[r].x, y = blueborderlinevec3[r].z}), z=blueborderlinevec3[r].z}, trigger.smokeColor.Red)--check smoke
+			trigger.action.smoke({x=blueborderline[r].x, y=land.getHeight({x = blueborderline[r].x, y = blueborderline[r].y}), z=blueborderline[r].y}, trigger.smokeColor.Green)--check smoke
+			trigger.action.smoke({x=blueborderlinevec3[r].x, y=land.getHeight({x = blueborderlinevec3[r].x, y = blueborderlinevec3[r].z}), z=blueborderlinevec3[r].z}, trigger.smokeColor.Red)--check smoke
 		end --blue border waypoints
 end --noBLUEborders
 
@@ -302,7 +303,7 @@ function getallaircrafts(color)
 
 	local side = color
 	 
-	local Aircraftstable = {}
+	Aircraftstable = {}
 
 	if side == 'red'
 		then
@@ -411,10 +412,11 @@ return allEWRunits
 end --getallEWR
 
 ---------------------------------CHECK for enemy aircraft in friendly air space and returns table of intruders aircraft inside friendly space
-function airspaceviolation(color)
+function airspaceviolation(color, noREDborders, noBLUEborders)
 
 	local interceptorside = color
-	local checkborders = 0 --flag to decide whether to check for area of responsibility violations
+	local redcheckborders = 0 --flag to decide whether to check for area of responsibility violations
+	local bluecheckborders = 0 --flag to decide whether to check for area of responsibility violations
 	local borderline = {}
 	if debuggingmessages == true and (side == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
 		Debug("debuggingmessage stuck at airspaceviolation 1: counter:"..string.format(counter).."/ side: "..interceptorside, interceptorside)
@@ -425,7 +427,7 @@ function airspaceviolation(color)
 			if noREDborders == 0 then --get RED area of responsibility if used
 				borderline = {}
 				borderline = redborderlinevec3
-				checkborders = 1 --RED area of responsibility used so need to check for violations				
+				redcheckborders = 1 --RED area of responsibility used so need to check for violations
 			end 
 			getallaircrafts('blue')
 			getallEWR('red')
@@ -434,7 +436,7 @@ function airspaceviolation(color)
 			if noBLUEborders == 0 then 	--get BLUE area of responsibility if used	
 				borderline = {}
 				borderline = blueborderlinevec3
-				checkborders = 1 --BLUE area of responsibility used so need to check for violations
+				bluecheckborders = 1 --BLUE area of responsibility used so need to check for violations
 			end 
 			getallaircrafts('red')
 			getallEWR('blue')
@@ -504,7 +506,7 @@ function airspaceviolation(color)
 									
 									if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
 										Debug("debuggingmessage stuck at airspaceviolation 2c: counter:"..string.format(counter).."/ side: "..interceptorside, interceptorside)
-									end	
+									end
 										
 								end
 							end
@@ -514,10 +516,16 @@ function airspaceviolation(color)
 							Debug("debuggingmessage stuck at airspaceviolation 3: counter:"..string.format(counter).."/ side: "..interceptorside, interceptorside)
 						end
 						
-						if checkborders == 1 then  
+						if (bluecheckborders == 1 and interceptorside== 'blue') or (redcheckborders == 1 and interceptorside== 'red') then
 							borderviolationcheck = mist.pointInPolygon(possibleintruderpos3, borderline)
+							if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
+							    Debug("debuggingmessage stuck at airspaceviolation 3a counter:"..string.format(counter).."/ side: "..interceptorside, interceptorside)
+							end
 						else  
-							borderviolationcheck = true --if areas of responsibility not used then border violation always true and detection relies on EWR radar 
+							borderviolationcheck = true --if areas of responsibility not used then border violation always true and detection relies on EWR radar
+							if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
+							    Debug("debuggingmessage stuck at airspaceviolation 3b: counter:"..string.format(counter).."/ side: "..interceptorside, interceptorside)
+						    end
 						end  
 						
 						if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
@@ -526,7 +534,7 @@ function airspaceviolation(color)
 						
 						if borderviolationcheck == true and intrudergroupdetected == true
 							then
-								n = n + 1
+								local n = n + 1
 								local actualintrudername = allairunits[i].name
 								local actualintruder = possibleintruder
 								local actualintrudergroup = Unit.getGroup(actualintruder)
@@ -1156,7 +1164,7 @@ function spawninterceptor(color)
 	local unit_id = 0  
 	local grpunit = 0 
 	local grpname = ""  
-	local gci_country = nil  
+--	local gci_country = nil
 	local intgroupcounter = 0 
 
 	if interceptorside == 'red'
@@ -2686,8 +2694,8 @@ function spawnCAP(color)
 	local CAPside = color
     local numberofCAPgroups = 0  
 	local numberofCAPzones = 0  
-	local capskill = "Random"  
-	local cap_country = nil  
+--	local capskill = "Random"
+--	local cap_country = nil
 	local payloadtable = {}  
 	local grouptable = {}  
 	local redcaptemplate = ""  
@@ -2695,8 +2703,8 @@ function spawnCAP(color)
 	local captype = ""  
 	local capplanelivery = "1"  
 	local actualgroupdata={}  
-	local unit_id = nil  
-	local grpunit = nil  
+--	local unit_id = nil
+--	local grpunit = nil
 	local grpname = ""  
 	
 	if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 7) then 	

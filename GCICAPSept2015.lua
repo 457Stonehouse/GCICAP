@@ -6,13 +6,21 @@ This script intends the following:
 A: To ease the generation of missions by providing a template, which can be repeatedly used and ported over from one mission to another.
 B: To provide plausible air force presence of the two major conflicting coalitions in shape of constant CAP coverage of defined zones as proactive defence
 C: To install GCI from defined airfields for a defined territory based on if an hostile aircraft was detected by ground based radar as counter active defence
-D: To highly randomise movement and encounters along defined areas of responsiblity and have constant fight for air superiority over the defined territory
+D: To highly randomise movement and encounters along defined borderlines and have constant fight for air superiority over the defined territory
 
-New in release with  August 2015 version:
-*Redo airbases so the table takes account of captures
-*Document those global variables that can be adjusted from within the mission to safely affect script behaviour. eg Control faction area of responsibility use from within the mission, mission event (eg ship reaches port) gives resupply 
-*review documentation around borders and change concept to area of interception/responsibility.
-*investigate areas of responsibility at the faction level. So make it possible to have a red area of responsibility only or a blue area of responsibility or both or none.
+New in release with 12/1/2015 version:
+*using a parameter to make the script GCI only rather than CAP & GCI 
+*Fix airbase logic so it's possible to have an airbase assigned to a coalition but not assigned for GCI CAP script use. ie a Human only base. 
+*simple logistics to limit the number of CAP/GCI spawns available. ie allocation of unit pools, decrement on spawn and increment on landing for CAP and GCI aircraft only. No safe landing = reduction of pool permanently. 
+*fix stuck aircraft logic, fix by setting stuckunitstable table entry to nil on landing event.
+*bug in numberofspawnedandactiveinterceptorgroups accounting so too many GCIs are spawned,however found this not to be a bug but design choice - address by increasing taskinginterval 
+*display GCI msgs in metric or imperial units
+*parameter to control GCI messages being displayed or not
+*clean up for human airfields as well as AI bases (based on [FSF]Ian's info http://forums.eagle.ru/showpost.php?p=2242571&postcount=5)
+*parameterise debug so if debuggingmessages == true and color == debuggingside ('red' 'blue' or 'both') and allow parameter to only debug specific main function
+*made current radar types available to both sides since often have EWR on both sides
+*increased waypoint speeds
+*Githib repository implemented and user guide released.
 
 Current planned enhancements list is:
 *might look at a parameter to make the players not be interception targets if people think this is useful for their mission design needs. 
@@ -23,9 +31,10 @@ Current planned enhancements list is:
 *Improve error handling
 *add better string handling for CAP and GCI unit names eg mist.stringMatch removes a bunch of characters, removes spaces, and can compare it all lower case. 
 *add the ability for player to call for limited amounts of GCI missions to help them - "call for help"
-*fix maxactiveandspawninterceptorgroups accounting so GCI flights that land will decrement count
-*investigate possible performance improvements - eg changing where possible from global to local vars
-*further tidy up script 
+*investigate possible performance improvements by changing to local variables where possible
+*cater for airbase capture handling
+*parameterise waypoint speeds
+* further tidy up script 
 
 See the user guide available at http://457stonehouse.github.io/GCICAP/
 
@@ -62,27 +71,15 @@ do
 --************************************************************************************************************************************
 --* Configuration Parameters that need to be set by mission designer start below
 --************************************************************************************************************************************
---*mission accessible variables>>>>>>>>
 
---Intercept way point speed, Patrol way point speed and RTB waypoint speed
-Interceptspeed = 400
-Patrolspeed = 350
-RTBspeed = 250
---control whether initial CAPs are already airborne or not  
-startairborne = 0	                               			--set to 1 for CAP flight to start airborne at script initialisation, 0 for taking off from airfield at start
-noREDborders = 0                                            --if noREDborders = 1 then don't worry about area of responsibility violation checks for RED only detection. if noREDborders = 0 then check for violation of area of interception
-noBLUEborders = 0 											--if noBLUEborders = 1 then don't worry about area of responsibility violation checks for BLUE only detection. if noBLUEborders = 0 then check for violation of area of interception
---next three parameters for logistics system
-bluegroupsupply = 24										--initial blue aircraft group numbers 
-redgroupsupply = 24											--initial red aircraft group numbers 
-limitedlogistics = 0										--parameter specifying whether total supply of blue and red groups are limited. 1 = Yes 0 = No
---control whether CAP flights are available
-noblueCAPs = 0												--if noblueCAPs = 1 then all blue CAP flights are suppressed and only GCI missions will launch, noblueCAPs=0 means CAPS & GCIs as normal
-noredCAPs = 0												--if noredCAPs = 1 then all red CAP flights are suppressed and only GCI missions will launch, noredCAPs=0 means CAPS & GCIs as normal
---*<<<<<<<<<<end mission accessible variables 
+--control CAP minimum & maximum altitudes 
+local cap_max_alt = 7500									--CAP max alt in meters Sep 2015 change to local
+local cap_min_alt = 4500									--CAP min alt in meters Sep 2015 change to local
+local startairborne = 0	                               		--set to 1 for CAP flight to start airborne at script initialisation, 0 for taking off from airfield at start Sep 2015 change to local
+local Interceptspeed = 400                                  --Intercept way point speed Sep 2015
+local Patrolspeed = 350                                     --Patrol way point speed Sep 2015
+local RTBspeed = 250                                        --RTB waypoint speed Sep 2015
 
-local cap_max_alt = 7500									--CAP max alt in meters
-local cap_min_alt = 4500									--CAP min alt in meters
 local numberofredCAPzones = 2								--input of numbers of defined CAP zones for Red side --YY capitalisation
 local numberofblueCAPzones = 2								--input of numbers of defined CAP zones for Blue side --YY capitalisation
 local numberofredCAPgroups = 2								--input of numbers of defined CAPs for red side
@@ -94,20 +91,22 @@ local GCIgroupsize = "randomized"			                --["2";"4";"randomized"; "dy
 local nomessages = 0										--nomessages = 1 means suppress GCI warnings
 local dspmsgtime = 3 										--display GCI messages in secs
 local dspmsgunits = 0										--display GCI messages in KM (1) or NM (0)
+local noborders = 0                                         --if noborders = 1 then don't worry about border checks only detection. if noborders = 0 then as normal
 local Spawnmode = "parking" 								--option to define AI spawn situation, must be["parking"/"takeoff"/"air"]	and defines the way the fighters spawn 
 local hideenemy = false 								    --option to hide or reveal air units in the mission. This setting affects both sides. Valid values are true/false to make units hidden/unhidden
-local RNW_type = "TakeOffParking"							--default runway actions
-local RNW_action = "From Parking Area"										    
-	
---Do not make the next value too low!! or you will see groups despawn before all members take off. The number of secs a stuck aircraft group will sit there on the taxiway before it's group is removed; may need adjustment upwards to suit airfields with limited taxiways. 
-stucktimelimit = 1080	
-cleanupradius = 3000										--parameter for radius of cleanup of wrecks etc on airfields
+noblueCAPs = 0												--if noblueCAPs = 1 then all blue CAP flights are suppressed and only GCI missions will launch, noblueCAPs=0 means CAPS & GCIs as normal
+noredCAPs = 0											    --if noredCAPs = 1 then all red CAP flights are suppressed and only GCI missions will launch, noredCAPs=0 means CAPS & GCIs as normal
+
+--next three parameters for logistics system
+bluegroupsupply = 24										--initial blue aircraft group numbers 
+redgroupsupply = 24											--initial red aircraft group numbers 
+limitedlogistics = 0										--parameter specifying whether total supply of blue and red groups are limited. 1 = Yes 0 = No
 
 --DEBUGGING options #### NOTE that to display table values the mist.tableShow lines must be uncommented as well as their associated Debug line
-local debuggingmessages = false								--set to true if tracking messages shall be printed
-env.setErrorMessageBoxEnabled(false)		       			--set to false if debugging message box, shall not be shown in game
-local debuggingside = 'blue'								--set side for which tracking messages shall be printed, use 'both' if you want debug messages for both sides to be logged
-local funnum = 8											--set to 0 for all otherwise set to specific number for function of interest
+local debuggingmessages = true								--set to true if tracking messages shall be printed
+env.setErrorMessageBoxEnabled(true)		       	  		    --set to false if debugging message box, shall not be shown in game
+local debuggingside = 'red'				   				    --set side for which tracking messages shall be printed, use 'both' if you want debug messages for both sides to be logged
+local funnum = 7											--set to 0 for all otherwise set to specific number for function of interest
 															-- airspaceviolation = 1
 															-- getinterceptorairborne = 2
 															-- spawninterceptor = 3
@@ -129,13 +128,18 @@ local blueCAPzone = 'blueCAPzone'					    	--Trigger zones defining the Blue CAP
 local redborderlineunitname = 'redborder' 	            	--Name of group which way points define the red border
 local blueborderlineunitname = 'blueborder' 	            --Name of group which way points define the blue border
 local taskinginterval = 1800 					       		--Time interval in which ongoing intercepts are renewed, NOTE: Do not use too small a value as it interrupts intercepts and resets limit on active GCIs which can cause mission to be spammed by aircraft
+local RNW_type = ""											-- Sep 2015 change
+local RNW_action = ""										-- Sep 2015 change
+
+stucktimelimit = 1080										--Do not make the next value too low!! or you will see groups despawn before all members take off. The number of secs a stuck aircraft group will sit there on the taxiway before it's group is removed; may need adjustment upwards to suit airfields with limited taxiways. 
+cleanupradius = 3000										--parameter for radius of cleanup of wrecks etc on airfields
 
 --names of red interceptorbases
 local redAFids = {}											 
 local redAF = {}
 local redBases = {}		
 --initialise red airfields
-								
+
 redAFids = coalition.getAirbases(1) 						--get list of red airbases
 for i = 1, #redAFids do
 	if mist.DBs.zonesByName[redAFids[i]:getName()] then 	--only add airbase if trigger zone present too
@@ -201,7 +205,7 @@ intruder = {}						--Table of intruder info
 intruder['red'] = {}
 intruder['blue'] = {}
 
-local allEWRunits = {}					--Table of radar units
+allEWRunits = {}					--Table of radar units
 
 AvailableAirborne = {}				--Table of available air units
 AvailableAirborne['red'] = {}
@@ -241,11 +245,6 @@ numberofspawnedandactiveinterceptorgroups['blue'] = {}
 
 stuckunitstable = {} --table of spawn times for each aircraft which is used to work out whether an aircraft is stuck on the ground and if so de-spawn it
 
-
---local redborderline = {}
---local blueborderline = {}
---local redborderlinevec3 = {}
---local blueborderlinevec3 = {}
 --Logic begins
 
 --setting the type of AI spawn, default is take off from ramp
@@ -264,8 +263,8 @@ then
 end --Spawnmode
 
 
---build tables defining the areas of responsibility for each faction if needed
-if noREDborders == 0 then --only get border vec3 co-ordinates if area of responsibility for RED are in use
+--build tables defining borderlines if needed
+if noborders == 0 then --only get border vec3 co-ordinates if borders are in use
 	redborderline =  mist.getGroupPoints(redborderlineunitname) --table of points defining red borderline
 	redborderlinevec3 = {}
 		for r = 1, #redborderline
@@ -279,9 +278,7 @@ if noREDborders == 0 then --only get border vec3 co-ordinates if area of respons
 			--trigger.action.smoke({x=redborderline[r].x, y=land.getHeight({x = redborderline[r].x, y = redborderline[r].y}), z=redborderline[r].y}, trigger.smokeColor.Green) --check smoke
 			--trigger.action.smoke({x=redborderlinevec3[r].x, y=land.getHeight({x = redborderlinevec3[r].x, y = redborderlinevec3[r].z}), z=redborderlinevec3[r].z}, trigger.smokeColor.Red)--check smoke
 		end --redborder waypoints
-end --noREDborders
 
-if noBLUEborders == 0 then --only get border vec3 co-ordinates if area of interception for BLUE are in use
 	blueborderline =  mist.getGroupPoints(blueborderlineunitname) --table of points defining blue borderline
 	blueborderlinevec3 = {}
 		for r = 1, #blueborderline
@@ -295,14 +292,14 @@ if noBLUEborders == 0 then --only get border vec3 co-ordinates if area of interc
 			--trigger.action.smoke({x=blueborderline[r].x, y=land.getHeight({x = blueborderline[r].x, y = blueborderline[r].y}), z=blueborderline[r].y}, trigger.smokeColor.Green)--check smoke
 			--trigger.action.smoke({x=blueborderlinevec3[r].x, y=land.getHeight({x = blueborderlinevec3[r].x, y = blueborderlinevec3[r].z}), z=blueborderlinevec3[r].z}, trigger.smokeColor.Red)--check smoke
 		end --blue border waypoints
-end --noBLUEborders
+end --no borders
 
 ------------function to get all aircraft & helos currently alive on map
 function getallaircrafts(color)
 
 	local side = color
 	 
-	local Aircraftstable = {}
+	local Aircraftstable = {} --Sep 2015 change
 
 	if side == 'red'
 		then
@@ -336,7 +333,7 @@ function getallaircrafts(color)
 		end
 	end
 	if debuggingmessages == true and (side == debuggingside or debuggingside == 'both') then
-		local allairunitsTable = mist.utils.tableShow(allairunits)
+		local allairunitsTable = mist.utils.tableShow(allairunits) --Sep 2015 change
 		Debug(side.." allairunits: " ..allairunitsTable, side) 
 	end
 
@@ -347,7 +344,7 @@ end --getallaircrafts
 function getallEWR(color)
 
 	local side = color
-	local EWRtable= {}
+	local EWRtable= {} --Sep 2015 change
 
 	if side == 'red'
 		then
@@ -404,7 +401,7 @@ function getallEWR(color)
 		end
 
 	if debuggingmessages == true and (side == debuggingside or debuggingside == 'both') then
-		local allEWRunitsTable = mist.utils.tableShow(allEWRunits)
+		local allEWRunitsTable = mist.utils.tableShow(allEWRunits) --Sep 2015 change
 		Debug(side.." allEWRunits: "..allEWRunitsTable, side)
 	end
 return allEWRunits
@@ -414,27 +411,23 @@ end --getallEWR
 function airspaceviolation(color)
 
 	local interceptorside = color
-	local checkborders = 0 --flag to decide whether to check for area of responsibility violations
-	local borderline = {}
+	local borderline = {} --Sep 2015 change
+
 	if debuggingmessages == true and (side == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
 		Debug("debuggingmessage stuck at airspaceviolation 1: counter:"..string.format(counter).."/ side: "..interceptorside, interceptorside)
 	end
 	
 	if interceptorside == 'red'
 		then
-			if noREDborders == 0 then --get RED area of responsibility if used
-				borderline = {}
+			if noborders == 0 then --don't worry about borders if not used
 				borderline = redborderlinevec3
-				checkborders = 1 --RED area of responsibility used so need to check for violations				
 			end 
 			getallaircrafts('blue')
 			getallEWR('red')
 	elseif interceptorside == 'blue'
 		then
-			if noBLUEborders == 0 then 	--get BLUE area of responsibility if used	
-				borderline = {}
+			if noborders == 0 then 		
 				borderline = blueborderlinevec3
-				checkborders = 1 --BLUE area of responsibility used so need to check for violations
 			end 
 			getallaircrafts('red')
 			getallEWR('blue')
@@ -514,10 +507,10 @@ function airspaceviolation(color)
 							Debug("debuggingmessage stuck at airspaceviolation 3: counter:"..string.format(counter).."/ side: "..interceptorside, interceptorside)
 						end
 						
-						if checkborders == 1 then  
+						if noborders == 0 then  
 							borderviolationcheck = mist.pointInPolygon(possibleintruderpos3, borderline)
 						else  
-							borderviolationcheck = true --if areas of responsibility not used then border violation always true and detection relies on EWR radar 
+							borderviolationcheck = true --if borders not used then border violation always true and detection relies on EWR radar 
 						end  
 						
 						if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
@@ -597,7 +590,7 @@ function airspaceviolation(color)
 	end
 
 	if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 1) then
-		IntruderTable = mist.utils.tableShow(intruder[interceptorside])
+		local IntruderTable = mist.utils.tableShow(intruder[interceptorside]) --Sep 2015 change
 		Debug(interceptorside.." intruder: " ..IntruderTable.."-counter: "..string.format(counter), interceptorside)
 	end
 
@@ -897,7 +890,7 @@ function getinterceptorairborne(color)
 	end
 
 	if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 2) then
-		AvailableAirborneTableshow = mist.utils.tableShow(AvailableAirborne[interceptorside])
+		local AvailableAirborneTableshow = mist.utils.tableShow(AvailableAirborne[interceptorside]) --Sep 2015 change
 		Debug(interceptorside.." AvailableAirborne: " ..AvailableAirborneTableshow, interceptorside)
 	end
 	
@@ -974,7 +967,7 @@ function getinterceptorairborne(color)
 			end
 
 			if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 2) then
-				possibleinterceptTable = mist.utils.tableShow(possibleintercept[interceptorside])
+				local possibleinterceptTable = mist.utils.tableShow(possibleintercept[interceptorside]) --Sep 2015 change
 				Debug(interceptorside.." possibleintercept: " ..possibleinterceptTable, interceptorside)
 			end
 				
@@ -1014,7 +1007,7 @@ function getinterceptorairborne(color)
 								}
 
 					if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 2) then
-						interceptTable = mist.utils.tableShow(intercept[interceptorside])
+						local interceptTable = mist.utils.tableShow(intercept[interceptorside]) --Sep 2015 change
 						Debug(interceptorside.." interceptTable: " ..interceptTable, interceptorside)
 					end
 
@@ -1156,8 +1149,9 @@ function spawninterceptor(color)
 	local unit_id = 0  
 	local grpunit = 0 
 	local grpname = ""  
-	local gci_country = nil  
+	local gci_country = 0 --Sep 2015 change
 	local intgroupcounter = 0 
+    local CAPspawnalt = 0 --Sep 2015 change
 
 	if interceptorside == 'red'
 		then
@@ -1421,7 +1415,7 @@ function spawninterceptor(color)
 														["airdromeId"] = _airdromeId,
 														["y"] = Interceptgrpposz,
 														["x"] = Interceptgrpposx,
-														["speed"] = 250,
+														["speed"] = Interceptspeed,
 														["ETA_locked"] = true,
 														["task"] =
 														{
@@ -1666,7 +1660,7 @@ function spawninterceptor(color)
 																					}
 
 						if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 3) then
-							interceptspawnstatusTable = mist.utils.tableShow(interceptspawnstatus[interceptorside])
+							local interceptspawnstatusTable = mist.utils.tableShow(interceptspawnstatus[interceptorside]) --Sep 2015 change
 							Debug(interceptorside.." interceptspawnstatus:" ..interceptspawnstatusTable, interceptorside)
 						end
 						
@@ -2017,7 +2011,7 @@ function generatetask(color)
 								end
 								
 								if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 4) then
-									interceptstatusTable = mist.utils.tableShow(interceptstatus[interceptorside])
+									local interceptstatusTable = mist.utils.tableShow(interceptstatus[interceptorside]) --Sep 2015 change
 									Debug(interceptorside.." interceptstatus : " ..interceptstatusTable, interceptorside)
 								end
 								
@@ -2040,7 +2034,7 @@ function interceptorsRTB(color)
 	local grpunitgci = 0 
 	local grpgciname = "" 
 	local AF = {}
-	
+
 	if interceptorside == 'red'
 		then
 
@@ -2444,7 +2438,7 @@ function interceptorsRTB(color)
 																						}
 											
 											if debuggingmessages == true and (interceptorside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 5) then
-												interceptorsRTBTableshow = mist.utils.tableShow(interceptorsRTBtable[interceptorside])
+												local interceptorsRTBTableshow = mist.utils.tableShow(interceptorsRTBtable[interceptorside]) --Sep 2015 change
 												Debug(interceptorside.." interceptorsRTBtable: "..interceptorsRTBTableshow,interceptorside)
 											end	
 												
@@ -2674,7 +2668,7 @@ function CAPStatusCheck(color)
 	end
 	
 	if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 6) then
-		actualCAPtableTable = mist.utils.tableShow(actualCAPtable[CAPside])
+		local actualCAPtableTable = mist.utils.tableShow(actualCAPtable[CAPside]) --Sep 2015 change
 		Debug(CAPside.." CAPStatusCheck: counter"..string.format(counter).."-table:" ..actualCAPtableTable, CAPside)
 	end
 	
@@ -2687,7 +2681,7 @@ function spawnCAP(color)
     local numberofCAPgroups = 0  
 	local numberofCAPzones = 0  
 	local capskill = "Random"  
-	local cap_country = nil  
+	local cap_country = 0 --Sep 2015 change
 	local payloadtable = {}  
 	local grouptable = {}  
 	local redcaptemplate = ""  
@@ -2695,9 +2689,10 @@ function spawnCAP(color)
 	local captype = ""  
 	local capplanelivery = "1"  
 	local actualgroupdata={}  
-	local unit_id = nil  
-	local grpunit = nil  
-	local grpname = ""  
+	local unit_id = 0 --Sep 2015 change
+	local grpunit = 0 --Sep 2015 change
+	local grpname = ""
+	local CAPspawnalt = 0 --Sep 2015 change
 	
 	if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 7) then 	
 		Debug("debuggingmessage spawnCAP: script hung A-X0: counter:"..string.format(counter)..CAPside, CAPside)
@@ -2722,7 +2717,7 @@ function spawnCAP(color)
 			cap_country=grouptable["countryId"]  
 			
 			if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 7) then	
-				actualgroupdata=mist.utils.tableShow(grouptable)
+				local actualgroupdata=mist.utils.tableShow(grouptable) --Sep 2015 change
 				Debug(CAPside.." groupdatatable: "..actualgroupdata, CAPside)
 			end
 				
@@ -2734,7 +2729,7 @@ function spawnCAP(color)
  
 			local airfldsel = {}
 			local rj = 0
-			local airbasedata = {}
+
 			
 			if #redAF > 1 then
 				if previousredCAPspawnzonename == nil then
@@ -2748,16 +2743,17 @@ function spawnCAP(color)
 							airfldsel[rj] = redAF[i]
 							
 							if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 7) then
-								actualairfldsel=mist.utils.tableShow(airfldsel)
+								local actualairfldsel=mist.utils.tableShow(airfldsel) --Sep 2015 change
 								Debug(CAPside.." actualairfldsel: "..actualairfldsel, CAPside)
 							end	
 								
 						end
 					end
 				end	
-				local airbasedata=mist.utils.tableShow(airfldsel)
+
 				
 				if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 7) then
+					local airbasedata=mist.utils.tableShow(airfldsel) --Sep 2015 change move inside if/end block
 					Debug("red airbasetable: "..airbasedata, CAPside)
 				end
 				
@@ -2831,7 +2827,7 @@ function spawnCAP(color)
 			cap_country=grouptable["countryId"]  
 			
 			if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 7) then
-				actualgroupdata=mist.utils.tableShow(grouptable)
+				local actualgroupdata=mist.utils.tableShow(grouptable) --Sep 2015 change
 				Debug(CAPside.." groupdatatable: "..actualgroupdata, CAPside)
 			end
 			
@@ -2981,7 +2977,7 @@ function spawnCAP(color)
 													["airdromeId"] = CAPairfieldID,
 													["y"] = actualCAPairfieldposz,
 													["x"] = actualCAPairfieldposx,
-													["speed"] = 250,
+													["speed"] = 250, --waypoint 1 hardcoded to 250 since this is first waypoint
 													["ETA_locked"] = true,
 													["task"] =
 													{
@@ -3331,7 +3327,7 @@ function spawnCAP(color)
 							}
 							
 	if debuggingmessages == true and (CAPside == debuggingside or debuggingside == 'both') and (funnum == 0 or funnum == 7) then							
-		actualCAPtableTable = mist.utils.tableShow(actualCAPtable[CAPside])
+		local actualCAPtableTable = mist.utils.tableShow(actualCAPtable[CAPside]) --Sep 2015 change
 		Debug(CAPside.." actualCAPtable: " ..actualCAPtableTable, CAPside)
 	end
 		
