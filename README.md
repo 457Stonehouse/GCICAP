@@ -3,7 +3,7 @@ Autonomous GCI and CAP script for DCS World
 
 Originally created by Snafu and then further enhanced by Stonehouse, Chameleon Silk, Rivvern.
 
-**Note requires MIST 3.5.37 or later. Download it here https://github.com/mrSkortch/MissionScriptingTools/releases/tag/3.5.37
+**Note requires MIST 3.7.51 or later. Download it here https://github.com/mrSkortch/MissionScriptingTools/releases/latest
 
 # Overview
 The script provides an autonomous model of combat air patrols and ground controlled interceptors for use with DCS World by mission builders. After minimal setup the script will automatically spawn CAP and GCI flights for two sides and give them patrol and intercept tasks as well as returning them to base when threats cease to be detected.
@@ -73,3 +73,7 @@ b9		-correct airbase logic to allow human only bases for a coalition (no trigger
 		-parameterise the units (KM or NM) the GCI messages are delivered in
 		-Add parameter to control whether GCI messages are displayed or not
 		-make EWRs available to both sides
+		
+Changes for September 15, 2015
+	Template aircraft reduced to 4 per side. Pilot names of template aircraft now prefixed with __TMP__
+	Changes to GCI logic and intercepts due to above correcting a situation caused by misinterpretation of Sanfu's 		        original code
