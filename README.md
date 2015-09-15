@@ -77,4 +77,7 @@ b9		-correct airbase logic to allow human only bases for a coalition (no trigger
 Changes for September 15, 2015
 	Template aircraft reduced to 4 per side. Pilot names of template aircraft now prefixed with __TMP__
 	Changes to GCI logic and intercepts due to above correcting a situation caused by misinterpretation of Sanfu's 		        original code
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/Interim
